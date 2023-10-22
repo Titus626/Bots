@@ -1,0 +1,99 @@
+import random
+import time
+import pyautogui
+import nltk
+from nltk.sentiment import SentimentIntensityAnalyzer
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cluster import KMeans
+import re
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
+
+class Chatlog:
+    def __init__(self, messages):
+        self.messages = messages
+
+        self.user_profiles = {}
+
+        for message in self.messages:
+            user = message["user"]
+            if user not in self.user_profiles:
+                self.user_profiles[user] = {}
+
+            sentiment = self.sentiment_analysis([message])[0]
+            topic = self.topic_detection([message])[0]
+
+            self.user_profiles[user][sentiment] = self.user_profiles[user].get(sentiment, 0) + 1
+            self.user_profiles[user][topic] = self.user_profiles[user].get(topic, 0) + 1
+
+    def get_user_profile(self, user):
+        return self.user_profiles[user]
+
+class Chatbot:
+    def __init__(self, chatroom_url, username, password, database_name, database_user, database_password):
+        self.chatroom_url = chatroom_url
+        self.username = username
+        self.password = password
+        self.database_name = database_name
+        self.database_user = database_user
+        self.database_password = database_password
+
+        self.conn = psycopg2.connect(
+            host="localhost",
+            port=5432,
+            database=self.database_name,
+            user=self.database_user,
+            password=self.database_password)
+
+        self.cur = self.conn.cursor()
+
+        self.chatlog = Chatlog([
+            "This is a positive message",
+            "This is a negative message",
+            "This message is about technology",
+            "This message is about sports",
+            "This message is about politics"
+        ])
+
+    def navigate_to_chatroom(self):
+        # Code for navigating to the chatroom
+
+    def login(self):
+        # Code for logging into the chatroom
+
+    def get_messages(self):
+        # Code for retrieving messages from the chatroom
+
+        self.cur.execute("SELECT * FROM chatlog")
+        messages = self.cur.fetchall()
+
+        for message in messages:
+            message = dict(message)
+            self.chatlog.messages.append(message)
+
+    def generate_response(self, message):
+        # Use the chatbot's knowledge to generate a response to the message
+
+        sentiments = self.chatlog.sentiment_analysis([message])
+        topics = self.chatlog.topic_detection([message])
+
+        if sentiments[0] == "positive":
+            user = message["user"]
+            user_profile = self.chatlog.get_user_profile(user)
+
+            if user_profile["sentiment"].most_common(1)[0][0] == "positive":
+                response = "I'm glad you're feeling positive! What can I help you with today?"
+            elif user_profile["topic"].most_common(1)[0][0] == 0:
+                response = "That's an interesting question about technology. I'm not sure I have the answer, but I can do some research and get back to you."
+            else:
+                response = "That's great! I'm always happy to help."
+
+        elif sentiments[0] == "negative":
+            response = "I'm sorry you're feeling negative. Is there anything I can do to help?"
+
+        else:
+            response = "I'm not sure I understand your question. Can you rephrase it?"
+
+        return response
